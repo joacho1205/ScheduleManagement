@@ -79,11 +79,16 @@ src/main/java
         ├─ dto
 
 # 주요 클래스
-1. controller - TodoController : API 요청 처리 및 결과 반환
-2. service - TodoService : 비즈니스 로직 처리
-3. repository - TodoRepository :
-4. entity - Todo : 데이터베이스의 SCHEDULE 테이블을 객체로 매핑
-5. dto - a. TodoRequestDto: 클라이언트에서 받은 요청 데이터를 담음 b. TodoResponseDto: 클라이언트로 응답할 데이터를 담음
+- controller - TodoController : HTTP 요청을 받아 Service 계층을 호출하고, 응답을 반환하는 API 엔드포인트를 정의합니다.
+클라이언트와 직접 통신하며, 요청 데이터를 TodoRequestDto로 변환하거나, 응답 데이터를 JSON 형식으로 반환합니다.
+- service - TodoService : 비즈니스 로직을 처리하며, Controller와 Repository 간의 중간 다리 역할을 합니다.
+데이터 처리 등을 담당하며, Repository와 연결되어 데이터를 관리합니다.
+- repository - TodoRepository : 메모리 저장소(List<Todo>)를 사용해 데이터를 관리하며, CRUD 작업을 처리합니다.
+데이터베이스를 대신하여 데이터를 저장, 조회, 수정, 삭제하는 역할을 합니다.
+- entity - Todo : 일정 데이터의 실제 구조를 정의하는 클래스.
+저장소(TodoRepository)에서 사용되는 데이터의 모델로, 일정의 각 속성(필드)을 포함하고 있습니다.
+- dto - a. TodoRequestDto: 클라이언트로부터 요청받은 데이터를 전달하기 위한 객체. 일정 생성, 수정에서 사용되며, 클라이언트가 전달한 JSON 데이터를 담습니다. b. TodoResponseDto: 서버에서 클라이언트로 응답을 보낼 때 사용됩니다.
+일정 데이터 중 클라이언트에게 필요한 정보만 전달하며, 비밀번호는 포함하지 않습니다.
 
 
 # 프로그램 구성도
@@ -91,3 +96,50 @@ src/main/java
 <img width="547" alt="스크린샷 2024-12-10 오전 11 05 56" src="https://github.com/user-attachments/assets/714e61ef-5370-4903-b317-5448838a5b95">
 
 
+
+# 로직 설명
+- 일정 생성
+1. 클라이언트는 POST /todo 요청과 함께 작성자명, 비밀번호, 할일 데이터를 JSON으로 보냄.
+2. Controller: TodoRequestDto로 요청 데이터를 매핑.
+3. Service: 요청 데이터를 바탕으로 Todo 객체 생성.
+4. Repository: 메모리에 저장 (List<Todo>에 추가).
+5. Service: 저장된 데이터를 TodoResponseDto로 변환.
+6. Controller: 클라이언트로 응답 전송.
+
+- 전체 일정 조회
+1. 클라이언트는 GET /todo 요청.
+2. Controller: Service 계층 호출.
+3. Service: TodoRepository.findAll() 호출.
+4. Repository: 메모리의 모든 데이터를 리스트로 반환.
+5. Service: 데이터를 TodoResponseDto 리스트로 변환.
+6. Controller: 클라이언트로 응답 전송.
+
+- 선택 일정 조회
+1. 클라이언트는 GET /todo/{id} 요청.
+2. Controller: URL 경로에서 id 추출 후 Service 호출.
+3. Service: TodoRepository.findById(id) 호출.
+4. Repository: 메모리에서 ID로 데이터 검색.
+5. Service: 검색 결과를 TodoResponseDto로 변환.
+6. Controller: 클라이언트로 응답 전송.
+
+- 선택 일정 수정
+1. 클라이언트는 PUT /todo/{id} 요청과 수정할 데이터(JSON)를 전송.
+2. Controller: URL 경로에서 id 추출, 본문 데이터를 TodoRequestDto로 매핑.
+3. Service: TodoRepository.update(id, todo, name, password) 호출.
+4. Repository: id로 데이터 검색.
+    a. 비밀번호가 일치하면 데이터 수정 후 true 반환.
+    b. 비밀번호가 틀리거나 데이터가 없으면 false 반환.
+5. Controller:
+    a. 수정 성공 시 "일정이 수정되었습니다." 반환.
+    b. 실패 시 400 Bad Request와 오류 메시지 반환.
+
+- 선택 일정 삭제
+1. 클라이언트는 DELETE /todo/{id} 요청과 함께 비밀번호(JSON)를 전송.
+2. Controller: URL 경로에서 id 추출, 본문에서 비밀번호 추출 후 Service 호출.
+3. Service: TodoRepository.delete(id, password) 호출.
+4. Repository: id로 데이터 검색.
+    a. 비밀번호가 일치하면 데이터 삭제 후 true 반환.
+    b. 비밀번호가 틀리거나 데이터가 없으면 false 반환.
+5. Controller:
+    a. 삭제 성공 시 "일정이 삭제되었습니다." 반환.
+    b. 실패 시 400 Bad Request와 오류 메시지 반환.
